@@ -1,0 +1,9 @@
+<resources>
+    <string name="module_name">SwipeRefreshLibrary</string>
+
+    <string name="msg_empty_text">(无数据)</string>
+    <string name="load_more_text">载入更多...</string>
+    <string name="msg_nonew_for_receive">数据已是最新</string>
+    <string name="msg_nomore_for_receive">服务器上没有更多数据了</string>
+    <string name="msg_network_error_for_receive">抱歉，暂时无法获取数据, 请稍后重试[错误码 %s]</string>
+</resources>
