@@ -73,6 +73,8 @@ public abstract class SwipeRefreshLayoutBaseActivity extends AppCompatActivity i
     public static final int REFRESH_RESULT_FAILED = -1000;
     /**刷新成功，没有更多数据了*/
     public static final int REFRESH_RESULT_NO_MORE_DATE = -1001;
+    /**刷新结果自定义*/
+    public static final int REFRESH_RESULT_CUSTOM_OP = -1002;
 
     //子类必须实现的方法
     /**提供一个CursorAdapter类的包装对象*/
@@ -87,6 +89,7 @@ public abstract class SwipeRefreshLayoutBaseActivity extends AppCompatActivity i
     protected abstract void onRefreshStart();
     protected abstract void onRefreshEnd();
     protected void onRefreshPostEnd() {}
+    protected void onRefreshCanceled(){};
     protected void onLoadLocalStart() {}
     protected void onLoadLocalEnd() {}
     /**返回可滚动View,可以是ListView、ScrollView等*/
@@ -361,10 +364,16 @@ public abstract class SwipeRefreshLayoutBaseActivity extends AppCompatActivity i
                     }
 
                 }
+                if (isCancelled()) {
+                    return serviceResultObject;
+                }
 //				while (isNeedRequestAgain) {
                 DebugUtils.logD(TAG, "start pageIndex " + mQuery.mPageInfo.mPageIndex + " pageSize = " + mQuery.mPageInfo.mPageSize);
                 _is = openConnection(buildPageQuery(mQuery));
 
+                if (isCancelled()) {
+                    return serviceResultObject;
+                }
                 if (_is != null) {
                     DebugUtils.logD(TAG, "begin parseList....");
                     List<? extends InfoInterface> serviceInfoList = getServiceInfoList(_is, mQuery.mPageInfo);
@@ -387,6 +396,9 @@ public abstract class SwipeRefreshLayoutBaseActivity extends AppCompatActivity i
                     }
 
                     DebugUtils.logD(TAG, "begin insert or update local database");
+                    if (isCancelled()) {
+                        return serviceResultObject;
+                    }
                     insertOrUpdateCount = savedIntoDatabase(mContentResolver, serviceInfoList);
                     if (mQuery.mPageInfo.mTotalCount == insertOrUpdateCount) {
                         DebugUtils.logD(TAG, "returned data count is equal to insertOrUpdateCount, so not need to pull data again");
@@ -403,6 +415,10 @@ public abstract class SwipeRefreshLayoutBaseActivity extends AppCompatActivity i
                     serviceResultObject.mStatusMessage = "openContectionLocked return null InputStream";
                 }
 
+            } catch (RefreshCustomException e) {
+                e.printStackTrace();
+                serviceResultObject.mStatusCode = REFRESH_RESULT_CUSTOM_OP;
+                serviceResultObject.mStatusMessage = e.getMessage();
             } catch (Exception e) {
                 e.printStackTrace();
                 serviceResultObject.mStatusCode = REFRESH_RESULT_FAILED;
@@ -434,6 +450,7 @@ public abstract class SwipeRefreshLayoutBaseActivity extends AppCompatActivity i
         @Override
         protected void onCancelled() {
             super.onCancelled();
+            onRefreshCanceled();
         }
 
     }
@@ -448,6 +465,9 @@ public abstract class SwipeRefreshLayoutBaseActivity extends AppCompatActivity i
                 ComApplication.getInstance().showMessage(statusMessage);
                 break;
             case REFRESH_RESULT_NO_MORE_DATE:
+                ComApplication.getInstance().showMessage(statusMessage);
+                break;
+            case REFRESH_RESULT_CUSTOM_OP:
                 ComApplication.getInstance().showMessage(statusMessage);
                 break;
             case REFRESH_RESULT_OK:

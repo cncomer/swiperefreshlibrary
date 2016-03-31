@@ -67,6 +67,8 @@ public abstract class SwipeRefreshLayoutBaseFragment extends Fragment implements
     public static final int REFRESH_RESULT_OK = 1;
     /**刷新失败*/
     public static final int REFRESH_RESULT_FAILED = -1000;
+    /**刷新结果自定义*/
+    public static final int REFRESH_RESULT_CUSTOM_OP = -1002;
     /**刷新成功，没有更多数据了*/
     public static final int REFRESH_RESULT_NO_MORE_DATE = -1001;
 
@@ -83,6 +85,7 @@ public abstract class SwipeRefreshLayoutBaseFragment extends Fragment implements
     protected abstract void onRefreshStart();
     protected abstract void onRefreshEnd();
     protected void onRefreshPostEnd() {}
+    protected void onRefreshCanceled(){};
     protected void onLoadLocalEnd() {}
     protected void onLoadLocalStart() {}
     /**返回可滚动View,可以是ListView、ScrollView等*/
@@ -371,8 +374,14 @@ public abstract class SwipeRefreshLayoutBaseFragment extends Fragment implements
                 }
 //				while (isNeedRequestAgain) {
                 DebugUtils.logD(TAG, "start pageIndex " + mQuery.mPageInfo.mPageIndex + " pageSize = " + mQuery.mPageInfo.mPageSize);
+                if (isCancelled()) {
+                    return serviceResultObject;
+                }
                 _is = openConnection(buildPageQuery(mQuery));
 
+                if (isCancelled()) {
+                    return serviceResultObject;
+                }
                 if (_is != null) {
                     DebugUtils.logD(TAG, "begin parseList....");
                     List<? extends InfoInterface> serviceInfoList = getServiceInfoList(_is, mQuery.mPageInfo);
@@ -393,7 +402,9 @@ public abstract class SwipeRefreshLayoutBaseFragment extends Fragment implements
                         DebugUtils.logD(TAG, "returned data count is less than that we requested, so not need to pull data again");
                         isNeedRequestAgain = false;
                     }
-
+                    if (isCancelled()) {
+                        return serviceResultObject;
+                    }
                     DebugUtils.logD(TAG, "begin insert or update local database");
                     insertOrUpdateCount = savedIntoDatabase(mContentResolver, serviceInfoList);
                     if (mQuery.mPageInfo.mTotalCount == insertOrUpdateCount) {
@@ -411,6 +422,10 @@ public abstract class SwipeRefreshLayoutBaseFragment extends Fragment implements
                     serviceResultObject.mStatusMessage = "openContectionLocked return null InputStream";
                 }
 
+            } catch (RefreshCustomException e) {
+                e.printStackTrace();
+                serviceResultObject.mStatusCode = REFRESH_RESULT_CUSTOM_OP;
+                serviceResultObject.mStatusMessage = e.getMessage();
             } catch (Exception e) {
                 e.printStackTrace();
                 serviceResultObject.mStatusCode = REFRESH_RESULT_FAILED;
@@ -442,6 +457,7 @@ public abstract class SwipeRefreshLayoutBaseFragment extends Fragment implements
         @Override
         protected void onCancelled() {
             super.onCancelled();
+            onRefreshCanceled();
         }
 
     }
@@ -456,6 +472,9 @@ public abstract class SwipeRefreshLayoutBaseFragment extends Fragment implements
                 ComApplication.getInstance().showMessage(statusMessage);
                 break;
             case REFRESH_RESULT_NO_MORE_DATE:
+                ComApplication.getInstance().showMessage(statusMessage);
+                break;
+            case REFRESH_RESULT_CUSTOM_OP:
                 ComApplication.getInstance().showMessage(statusMessage);
                 break;
             case REFRESH_RESULT_OK:
