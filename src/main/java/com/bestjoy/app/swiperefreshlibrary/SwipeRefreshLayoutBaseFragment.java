@@ -72,6 +72,8 @@ public abstract class SwipeRefreshLayoutBaseFragment extends Fragment implements
     /**刷新成功，没有更多数据了*/
     public static final int REFRESH_RESULT_NO_MORE_DATE = -1001;
 
+    private RefreshCallback mRefreshCallback;
+
     //子类必须实现的方法
     /**提供一个CursorAdapter类的包装对象*/
     protected abstract AdapterWrapper<? extends BaseAdapter> getAdapterWrapper();
@@ -80,10 +82,21 @@ public abstract class SwipeRefreshLayoutBaseFragment extends Fragment implements
     /**返回本地的Cursor*/
     protected abstract Cursor loadLocal(ContentResolver contentResolver);
     protected abstract int savedIntoDatabase(ContentResolver contentResolver, List<? extends InfoInterface> infoObjects);
-    protected abstract List<? extends InfoInterface> getServiceInfoList(InputStream is, PageInfo pageInfo);
+    protected abstract List<? extends InfoInterface> getServiceInfoList(InputStream is, PageInfo pageInfo) throws RefreshCustomException;
     protected abstract Query getQuery();
     protected abstract void onRefreshStart();
-    protected abstract void onRefreshEnd();
+    protected void onRefreshEnd(){}
+
+    /***
+     * 总共有几个新数据
+     * @param dataCount
+     */
+    protected void onRefreshEndV2(int dataCount, long dataTotal){
+        if (mRefreshCallback != null) {
+            mRefreshCallback.onRefresh(dataCount, dataTotal);
+        }
+        onRefreshEnd();
+    }
     protected void onRefreshPostEnd() {}
     protected void onRefreshCanceled(){};
     protected void onLoadLocalEnd() {}
@@ -101,9 +114,11 @@ public abstract class SwipeRefreshLayoutBaseFragment extends Fragment implements
      * 构建分页查询，默认是mQuery.qServiceUrl&pageindex=&pagesize=的形式
      * @return
      */
-    protected abstract String buildPageQuery(Query query);
+    protected String buildPageQuery(Query query) {
+        return query.qServiceUrl;
+    };
 
-    private Handler mHandle;
+    protected Handler mHandle;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -388,7 +403,7 @@ public abstract class SwipeRefreshLayoutBaseFragment extends Fragment implements
                     int newCount = serviceInfoList.size();
                     DebugUtils.logD(TAG, "find new date #count = " + newCount + " totalSize = " + mQuery.mPageInfo.mTotalCount);
                     if (mQuery.mPageInfo.mPageIndex == PageInfo.DEFAULT_PAGEINDEX) {
-                        onRefreshEnd();
+                        onRefreshEndV2(newCount, mQuery.mPageInfo.mTotalCount);
                     }
 
                     if (newCount == 0) {
@@ -480,6 +495,10 @@ public abstract class SwipeRefreshLayoutBaseFragment extends Fragment implements
             case REFRESH_RESULT_OK:
                 break;
         }
+    }
+
+    public void setRefreshCallback(RefreshCallback refreshCallback) {
+        mRefreshCallback = refreshCallback;
     }
 
 }

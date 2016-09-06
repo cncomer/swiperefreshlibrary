@@ -66,7 +66,7 @@ public abstract class SwipeRefreshLayoutBaseActivity extends AppCompatActivity i
     /**如果当前在列表底部了*/
     protected boolean mIsAtListBottom = false;
     private PowerManager.WakeLock mWakeLock;
-    private Handler mHandle;
+    protected Handler mHandle;
     /**刷新成功*/
     public static final int REFRESH_RESULT_OK = 1;
     /**刷新失败*/
@@ -75,6 +75,8 @@ public abstract class SwipeRefreshLayoutBaseActivity extends AppCompatActivity i
     public static final int REFRESH_RESULT_NO_MORE_DATE = -1001;
     /**刷新结果自定义*/
     public static final int REFRESH_RESULT_CUSTOM_OP = -1002;
+
+    private RefreshCallback mRefreshCallback;
 
     //子类必须实现的方法
     /**提供一个CursorAdapter类的包装对象*/
@@ -87,7 +89,20 @@ public abstract class SwipeRefreshLayoutBaseActivity extends AppCompatActivity i
     protected abstract List<? extends InfoInterface> getServiceInfoList(InputStream is, PageInfo pageInfo);
     protected abstract Query getQuery();
     protected abstract void onRefreshStart();
-    protected abstract void onRefreshEnd();
+
+    protected void onRefreshEnd(){}
+
+    /***
+     * 总共有几个新数据
+     * @param dataCount
+     */
+    protected void onRefreshEndV2(int dataCount, long dataTotal){
+        if (mRefreshCallback != null) {
+            mRefreshCallback.onRefresh(dataCount, dataTotal);
+        }
+        onRefreshEnd();
+    }
+
     protected void onRefreshPostEnd() {}
     protected void onRefreshCanceled(){};
     protected void onLoadLocalStart() {}

@@ -10,6 +10,13 @@ android {
 //    //android 6.0(api 23) SDK，不再提供org.apache.http.*(只保留几个类),所以我们需要在编译时申明依赖
 //    useLibrary 'org.apache.http.legacy'
 
+    defaultConfig {
+        minSdkVersion 8
+        targetSdkVersion 21
+        versionCode 1
+        versionName "1.0"
+    }
+
     buildTypes {
         release {
             minifyEnabled false
