@@ -33,6 +33,9 @@ import com.shwy.bestjoy.utils.PageInfo;
 import com.shwy.bestjoy.utils.Query;
 import com.shwy.bestjoy.utils.ServiceResultObject;
 
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import java.io.InputStream;
 import java.util.List;
 
@@ -48,7 +51,7 @@ public abstract class SwipeRefreshLayoutBaseActivity extends AppCompatActivity i
     protected View mEmptyView;
     private Query mQuery;
     private AdapterWrapper<? extends BaseAdapter> mAdapterWrapper;
-    private ContentResolver mContentResolver;
+    protected ContentResolver mContentResolver;
 
     /**第一次刷新*/
     protected boolean mIsFirstRefresh= false;
@@ -116,11 +119,40 @@ public abstract class SwipeRefreshLayoutBaseActivity extends AppCompatActivity i
     }
 
     protected abstract InputStream openConnection(String url) throws Exception;
+    /**加密请求*/
+    protected String encodeRequest(String source) {
+        return source;
+    }
     /***
      * 构建分页查询，默认是mQuery.qServiceUrl&pageindex=&pagesize=的形式
+     * 如果mExtraData是JSONObject,则表示我们需要在JSONObject中添加分页数据
      * @return
      */
-    protected abstract String buildPageQuery(Query query);
+    protected String buildPageQuery(Query query) {
+        try {
+            if (query.mExtraData instanceof JSONObject) {
+                JSONObject queryObject = (JSONObject) query.mExtraData;
+                queryObject.put("pageindex", query.mPageInfo.mPageIndex);
+                queryObject.put("pagesize", query.mPageInfo.mPageSize);
+
+                if (!query.qServiceUrl.endsWith("?")) {
+                    query.qServiceUrl+="?";
+                }
+                return query.qServiceUrl + "para="+ encodeRequest(queryObject.toString());
+            }
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+
+        StringBuilder sb = new StringBuilder(query.qServiceUrl);
+        if (!query.qServiceUrl.endsWith("?")) {
+            sb.append('&');
+        }
+
+        sb.append("pageindex=").append(query.mPageInfo.mPageIndex).append('&');
+        sb.append("pagesize=").append(query.mPageInfo.mPageSize);
+        return query.qServiceUrl;
+    }
 
     @Override
     public void onCreate(Bundle savedInstanceState) {

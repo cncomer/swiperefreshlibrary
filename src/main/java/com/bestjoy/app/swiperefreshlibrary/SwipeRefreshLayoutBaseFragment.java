@@ -31,7 +31,11 @@ import com.shwy.bestjoy.utils.PageInfo;
 import com.shwy.bestjoy.utils.Query;
 import com.shwy.bestjoy.utils.ServiceResultObject;
 
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import java.io.InputStream;
+import java.net.URLEncoder;
 import java.util.List;
 
 /*
@@ -45,7 +49,7 @@ public abstract class SwipeRefreshLayoutBaseFragment extends Fragment implements
     protected View mEmptyView;
     private Query mQuery;
     private AdapterWrapper<? extends BaseAdapter> mAdapterWrapper;
-    private ContentResolver mContentResolver;
+    protected ContentResolver mContentResolver;
 
     /**第一次刷新*/
     protected boolean mIsFirstRefresh= false;
@@ -74,6 +78,8 @@ public abstract class SwipeRefreshLayoutBaseFragment extends Fragment implements
 
     private RefreshCallback mRefreshCallback;
 
+    private AbsListView.OnScrollListener onScrollListener;
+
     //子类必须实现的方法
     /**提供一个CursorAdapter类的包装对象*/
     protected abstract AdapterWrapper<? extends BaseAdapter> getAdapterWrapper();
@@ -82,7 +88,7 @@ public abstract class SwipeRefreshLayoutBaseFragment extends Fragment implements
     /**返回本地的Cursor*/
     protected abstract Cursor loadLocal(ContentResolver contentResolver);
     protected abstract int savedIntoDatabase(ContentResolver contentResolver, List<? extends InfoInterface> infoObjects);
-    protected abstract List<? extends InfoInterface> getServiceInfoList(InputStream is, PageInfo pageInfo) throws RefreshCustomException;
+    protected abstract List<? extends InfoInterface> getServiceInfoList(InputStream is, PageInfo pageInfo) throws Exception;
     protected abstract Query getQuery();
     protected abstract void onRefreshStart();
     protected void onRefreshEnd(){}
@@ -110,13 +116,48 @@ public abstract class SwipeRefreshLayoutBaseFragment extends Fragment implements
     }
 
     protected abstract InputStream openConnection(String url) throws Exception;
+    /**加密JSONObject类型的请求,默认使用URLEncoder.encode*/
+    protected String encodeJsonObjectRequest(JSONObject queryObject) {
+        return encodeRequest(queryObject.toString());
+    }
+    /**加密请求,默认使用URLEncoder.encode*/
+    protected String encodeRequest(String source) {
+        return URLEncoder.encode(source);
+    }
     /***
      * 构建分页查询，默认是mQuery.qServiceUrl&pageindex=&pagesize=的形式
+     * 如果mExtraData是JSONObject,则表示我们需要在JSONObject中添加分页数据
      * @return
      */
     protected String buildPageQuery(Query query) {
-        return query.qServiceUrl;
-    };
+        try {
+            if (query.mExtraData instanceof JSONObject) {
+                JSONObject queryObject = (JSONObject) query.mExtraData;
+                queryObject.put("pageindex", query.mPageInfo.mPageIndex);
+                queryObject.put("pagesize", query.mPageInfo.mPageSize);
+                if (!query.qServiceUrl.endsWith("?")) {
+                    query.qServiceUrl+="?";
+                }
+                return query.qServiceUrl + "para="+ encodeJsonObjectRequest(queryObject);
+            }
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+
+        StringBuilder sb = new StringBuilder(query.qServiceUrl);
+        if (!query.qServiceUrl.endsWith("?")) {
+            sb.append('&');
+        }
+
+        sb.append("pageindex=").append(query.mPageInfo.mPageIndex).append('&');
+        sb.append("pagesize=").append(query.mPageInfo.mPageSize);
+        return sb.toString();
+    }
+
+
+    protected void setOnScrollListener(AbsListView.OnScrollListener listener) {
+        onScrollListener = listener;
+    }
 
     protected Handler mHandle;
 
@@ -157,6 +198,9 @@ public abstract class SwipeRefreshLayoutBaseFragment extends Fragment implements
 
                 @Override
                 public void onScrollStateChanged(AbsListView view, int scrollState) {
+                    if (onScrollListener != null) {
+                        onScrollListener.onScrollStateChanged(view, scrollState);
+                    }
                     if (scrollState == AbsListView.OnScrollListener.SCROLL_STATE_IDLE && mIsAtListBottom && !mIsUpdate) {
                         DebugUtils.logExchangeBC(TAG, "we go to load more.");
                         if (isNeedRequestAgain) {
@@ -178,6 +222,9 @@ public abstract class SwipeRefreshLayoutBaseFragment extends Fragment implements
 
                 @Override
                 public void onScroll(AbsListView view, int firstVisibleItem, int visibleItemCount, int totalItemCount) {
+                    if (onScrollListener != null) {
+                        onScrollListener.onScroll(view, firstVisibleItem, visibleItemCount, totalItemCount);
+                    }
                     if (totalItemCount > 0) {
                         if (firstVisibleItem == 0 && firstVisibleItem + visibleItemCount == totalItemCount) {
                             mIsAtListBottom = true;
