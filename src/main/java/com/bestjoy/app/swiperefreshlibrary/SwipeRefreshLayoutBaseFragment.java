@@ -104,7 +104,7 @@ public abstract class SwipeRefreshLayoutBaseFragment extends Fragment implements
         onRefreshEnd();
     }
     protected void onRefreshPostEnd() {}
-    protected void onRefreshCanceled(){};
+    protected void onRefreshCanceled(){}
     protected void onLoadLocalEnd() {}
     protected void onLoadLocalStart() {}
     /**返回可滚动View,可以是ListView、ScrollView等*/
@@ -405,7 +405,7 @@ public abstract class SwipeRefreshLayoutBaseFragment extends Fragment implements
     }
 
     private QueryServiceTask mQueryServiceTask;
-    private void loadServerDataAsync() {
+    protected void loadServerDataAsync() {
         AsyncTaskUtils.cancelTask(mQueryServiceTask);
         mQueryServiceTask = new QueryServiceTask();
         mQueryServiceTask.execute();
