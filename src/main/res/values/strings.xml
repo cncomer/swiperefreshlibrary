@@ -6,4 +6,9 @@
     <string name="msg_nonew_for_receive">数据已是最新</string>
     <string name="msg_nomore_for_receive">服务器上没有更多数据了</string>
     <string name="msg_network_error_for_receive">抱歉，暂时无法获取数据, 请稍后重试[错误码 %s]</string>
+
+    <string name="format_refresh_date_count">"一共有(%s)条数据"</string>
+    <string name="msg_empty_list">(空)</string>
+    <string name="pull_to_refresh_locationing_label">正在定位当前位置...</string>
+    <string name="pull_to_refresh_load_label">正在载入...</string>
 </resources>
