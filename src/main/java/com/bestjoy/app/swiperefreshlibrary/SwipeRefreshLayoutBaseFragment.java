@@ -213,7 +213,7 @@ public abstract class SwipeRefreshLayoutBaseFragment extends Fragment implements
                                 int count = mAdapterWrapper.getCount();
                                 mQuery.mPageInfo.computePageSize(count);
                             }
-                            new QueryServiceTask().execute();
+                            new QueryServiceTask(mQuery).execute();
                         } else {
                             DebugUtils.logExchangeBC(TAG, "isNeedRequestAgain is false, we not need to load more");
                         }
@@ -290,6 +290,7 @@ public abstract class SwipeRefreshLayoutBaseFragment extends Fragment implements
 
     @Override
     public void onRefresh() {
+        AsyncTaskUtils.cancelTask(mQueryServiceTask);
         mSwipeLayout.setRefreshing(true);
         //重设为0，这样我们可以从头开始更新数据
         mQuery = getQuery();
@@ -406,14 +407,18 @@ public abstract class SwipeRefreshLayoutBaseFragment extends Fragment implements
 
     private QueryServiceTask mQueryServiceTask;
     protected void loadServerDataAsync() {
-        AsyncTaskUtils.cancelTask(mQueryServiceTask);
-        mQueryServiceTask = new QueryServiceTask();
+        mQueryServiceTask = new QueryServiceTask(mQuery);
         mQueryServiceTask.execute();
     }
 
     /**更新或是新增的总数 >0表示有更新数据，需要刷新，=-1网络问题， =-2 已是最新数据 =0 没有更多数据*/
     private class QueryServiceTask extends AsyncTaskCompat<Void, Void, ServiceResultObject> {
         private InputStream _is;
+        private Query query = null;
+
+        private QueryServiceTask(Query query) {
+            this.query = query;
+        }
 
         @Override
         protected ServiceResultObject doInBackground(Void... arg0) {
@@ -421,36 +426,36 @@ public abstract class SwipeRefreshLayoutBaseFragment extends Fragment implements
             ServiceResultObject serviceResultObject = new ServiceResultObject();
             int insertOrUpdateCount = 0;
             try {
-                if (mQuery.mPageInfo.mPageIndex == PageInfo.DEFAULT_PAGEINDEX) {
+                if (query.mPageInfo.mPageIndex == PageInfo.DEFAULT_PAGEINDEX) {
                     //开始刷新
                     onRefreshStart();
                     if (mIsFirstRefresh) {
                         mIsFirstRefresh = false;
                         final Cursor cursor = loadLocal(mContentResolver);
                         if (cursor != null) {
-                            mQuery.mPageInfo.computePageSize(cursor.getCount());
+                            query.mPageInfo.computePageSize(cursor.getCount());
                             cursor.close();
                         }
                     }
 
                 }
 //				while (isNeedRequestAgain) {
-                DebugUtils.logD(TAG, "start pageIndex " + mQuery.mPageInfo.mPageIndex + " pageSize = " + mQuery.mPageInfo.mPageSize);
+                DebugUtils.logD(TAG, "start pageIndex " + query.mPageInfo.mPageIndex + " pageSize = " + query.mPageInfo.mPageSize);
                 if (isCancelled()) {
                     return serviceResultObject;
                 }
-                _is = openConnection(buildPageQuery(mQuery));
+                _is = openConnection(buildPageQuery(query));
 
                 if (isCancelled()) {
                     return serviceResultObject;
                 }
                 if (_is != null) {
                     DebugUtils.logD(TAG, "begin parseList....");
-                    List<? extends InfoInterface> serviceInfoList = getServiceInfoList(_is, mQuery.mPageInfo);
+                    List<? extends InfoInterface> serviceInfoList = getServiceInfoList(_is, query.mPageInfo);
                     int newCount = serviceInfoList.size();
-                    DebugUtils.logD(TAG, "find new date #count = " + newCount + " totalSize = " + mQuery.mPageInfo.mTotalCount);
-                    if (mQuery.mPageInfo.mPageIndex == PageInfo.DEFAULT_PAGEINDEX) {
-                        onRefreshEndV2(newCount, mQuery.mPageInfo.mTotalCount);
+                    DebugUtils.logD(TAG, "find new date #count = " + newCount + " totalSize = " + query.mPageInfo.mTotalCount);
+                    if (query.mPageInfo.mPageIndex == PageInfo.DEFAULT_PAGEINDEX) {
+                        onRefreshEndV2(newCount, query.mPageInfo.mTotalCount);
                     }
 
                     if (newCount == 0) {
@@ -460,7 +465,7 @@ public abstract class SwipeRefreshLayoutBaseFragment extends Fragment implements
                         serviceResultObject.mStatusMessage = getActivity().getString(R.string.msg_nonew_for_receive);
                         return serviceResultObject;
                     }
-                    if (mQuery.mPageInfo.mTotalCount <= mQuery.mPageInfo.mPageIndex * mQuery.mPageInfo.mPageSize) {
+                    if (query.mPageInfo.mTotalCount <= query.mPageInfo.mPageIndex * query.mPageInfo.mPageSize) {
                         DebugUtils.logD(TAG, "returned data count is less than that we requested, so not need to pull data again");
                         isNeedRequestAgain = false;
                     }
@@ -469,12 +474,12 @@ public abstract class SwipeRefreshLayoutBaseFragment extends Fragment implements
                     }
                     DebugUtils.logD(TAG, "begin insert or update local database");
                     insertOrUpdateCount = savedIntoDatabase(mContentResolver, serviceInfoList);
-                    if (mQuery.mPageInfo.mTotalCount == insertOrUpdateCount) {
+                    if (query.mPageInfo.mTotalCount == insertOrUpdateCount) {
                         DebugUtils.logD(TAG, "returned data count is equal to insertOrUpdateCount, so not need to pull data again");
                         isNeedRequestAgain = false;
                     }
                     if (isNeedRequestAgain) {
-                        mQuery.mPageInfo.mPageIndex+=1;
+                        query.mPageInfo.mPageIndex+=1;
                     }
                     serviceResultObject.mStatusMessage = String.valueOf(insertOrUpdateCount);
                 } else {
