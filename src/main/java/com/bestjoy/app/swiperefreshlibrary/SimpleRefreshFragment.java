@@ -26,7 +26,7 @@ public class SimpleRefreshFragment extends Fragment implements SwipeRefreshLayou
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
-        fragmentView = inflater.inflate(getContentLayout(), null);
+        fragmentView = inflater.inflate(getContentLayout(), container, false);
         initSwipeRefreshLayoutView(fragmentView);
         installContent(inflater);
         return fragmentView;
@@ -49,9 +49,7 @@ public class SimpleRefreshFragment extends Fragment implements SwipeRefreshLayou
 
 
     protected void installContent(LayoutInflater inflater) {
-
     }
-
 
     @Override
     public void onRefresh() {
