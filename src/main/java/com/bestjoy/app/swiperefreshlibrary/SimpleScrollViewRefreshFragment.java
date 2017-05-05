@@ -1,13 +1,13 @@
 package com.bestjoy.app.swiperefreshlibrary;
 
-import android.view.LayoutInflater;
+import android.view.View;
 import android.widget.FrameLayout;
 
 /**
  * 默认是ScrollView
  * Created by bestjoy on 16/7/20.
  */
-public class SimpleScrollViewRefreshFragment extends SimpleRefreshFragment{
+public abstract class SimpleScrollViewRefreshFragment extends SimpleRefreshFragment{
 
     protected FrameLayout contentLayout;
 
@@ -15,7 +15,8 @@ public class SimpleScrollViewRefreshFragment extends SimpleRefreshFragment{
         return R.layout.fragment_simple_scrollview_refresh;
     }
 
-    protected void installContent(LayoutInflater inflater) {
-        contentLayout = (FrameLayout) fragmentView.findViewById(R.id.content_layout);
+    protected void initSwipeRefreshLayoutView(View view) {
+        super.initSwipeRefreshLayoutView(view);
+        contentLayout = (FrameLayout) view.findViewById(R.id.content_layout);
     }
 }

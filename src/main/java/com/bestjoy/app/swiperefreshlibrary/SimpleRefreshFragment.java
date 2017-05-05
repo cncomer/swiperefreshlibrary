@@ -13,7 +13,7 @@ import com.shwy.bestjoy.utils.NetworkRequestHelper;
  * 默认是ScrollView
  * Created by bestjoy on 16/7/20.
  */
-public class SimpleRefreshFragment extends Fragment implements SwipeRefreshLayout.OnRefreshListener, View.OnClickListener{
+public abstract class SimpleRefreshFragment extends Fragment implements SwipeRefreshLayout.OnRefreshListener{
 
 
     protected SwipeRefreshLayout swipeRefreshLayout;
@@ -28,7 +28,6 @@ public class SimpleRefreshFragment extends Fragment implements SwipeRefreshLayou
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         fragmentView = inflater.inflate(getContentLayout(), container, false);
         initSwipeRefreshLayoutView(fragmentView);
-        installContent(inflater);
         return fragmentView;
     }
 
@@ -47,9 +46,6 @@ public class SimpleRefreshFragment extends Fragment implements SwipeRefreshLayou
         swipeRefreshLayout.setSize(SwipeRefreshLayout.LARGE);
     }
 
-
-    protected void installContent(LayoutInflater inflater) {
-    }
 
     @Override
     public void onRefresh() {
@@ -81,12 +77,9 @@ public class SimpleRefreshFragment extends Fragment implements SwipeRefreshLayou
         });
     }
 
-    protected Object refreshInBackground() {
-        return null;
-    }
+    protected abstract Object refreshInBackground();
 
-    protected void refreshEnd(Object result) {
-    }
+    protected abstract void refreshEnd(Object result);
 
     protected void refreshCanceled() {
     }
@@ -94,10 +87,5 @@ public class SimpleRefreshFragment extends Fragment implements SwipeRefreshLayou
     public void forceRefresh() {
         swipeRefreshLayout.setRefreshing(true);
         onRefresh();
-    }
-
-    @Override
-    public void onClick(View v) {
-
     }
 }
